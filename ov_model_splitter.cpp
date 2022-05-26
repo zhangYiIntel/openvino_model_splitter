@@ -90,7 +90,7 @@ int main(int args, char *argv[]) {
 
     auto subgraph = std::make_shared<ov::Model>(subgraph_results, subgraph_parameters);
 
-    ov::pass::Serialize serializer("simple_bottom_mlp.xml", "simple_bottom_mlp.bin");
+    ov::pass::Serialize serializer("simple_model.xml", "simple_model.bin");
     serializer.run_on_model(subgraph);
 
 }
