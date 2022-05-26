@@ -30,7 +30,7 @@ void run_model(std::shared_ptr<ov::Model> model) {
 
 
 int main(int args, char *argv[]) {
-    if (args < 2)
+    if (args < 4)
         return -1;
 
     ov::Core core;
@@ -44,14 +44,18 @@ int main(int args, char *argv[]) {
     for(auto& op : ordered_ops) {
         name2op.emplace(op->get_friendly_name(), op);
     }
-    std::vector<std::string> target_input = {"548"};
-    std::vector<std::string> target_output = {"600_copy"};
+    std::vector<std::string> target_input = {argv[2]};
+    std::vector<std::string> target_output = {argv[3]};
 
     std::vector<std::shared_ptr<opset8::Parameter> > subgraph_parameters = {};
     std::vector<std::shared_ptr<opset8::Result> > subgraph_results = {};
     for(auto& input_name : target_input) {
         auto input_op = name2op.at(input_name);
-
+        if (auto node = ov::as_type_ptr<opset8::Parameter>(input_op)) {
+            std::cout << "keep original parameter " << input_name << std::endl;
+            subgraph_parameters.push_back(node);
+            continue;
+        }
         size_t num_const = 0;
         size_t index2non_const = -1;
         for(size_t i = 0; i < input_op->get_input_size(); i++) {
@@ -68,7 +72,7 @@ int main(int args, char *argv[]) {
         }
 
         auto new_param = std::make_shared<opset8::Parameter>(input_op->get_input_element_type(index2non_const),
-                                                             input_op->get_input_shape(index2non_const));
+                                                             input_op->get_input_partial_shape(index2non_const));
         subgraph_parameters.push_back(new_param);
         input_op->input_value(index2non_const).replace(new_param->output(index2non_const));
     }
@@ -86,7 +90,7 @@ int main(int args, char *argv[]) {
 
     auto subgraph = std::make_shared<ov::Model>(subgraph_results, subgraph_parameters);
 
-    ov::pass::Serialize serializer("simple_wenet.xml", "simple_wenet.bin");
+    ov::pass::Serialize serializer("simple_bottom_mlp.xml", "simple_bottom_mlp.bin");
     serializer.run_on_model(subgraph);
 
 }
