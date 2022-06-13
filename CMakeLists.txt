@@ -7,3 +7,8 @@ add_executable(ov_model_splitter ov_model_splitter.cpp)
 
 target_include_directories(ov_model_splitter PUBLIC ${InferenceEngine_INCLUDE_DIRS})
 target_link_libraries(ov_model_splitter ${InferenceEngine_LIBRARIES})
+
+add_executable(ov_test main.cpp)
+target_include_directories(ov_test PUBLIC ${InferenceEngine_INCLUDE_DIRS})
+target_link_libraries(ov_test ${InferenceEngine_LIBRARIES})
+

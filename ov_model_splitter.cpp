@@ -46,7 +46,8 @@ int main(int args, char *argv[]) {
     }
     std::vector<std::string> target_input = {argv[2]};
     std::vector<std::string> target_output = {argv[3]};
-
+    std::cout << "Start " << argv[2] << std::endl;
+    std::cout << "End " << argv[3] << std::endl;
     std::vector<std::shared_ptr<opset8::Parameter> > subgraph_parameters = {};
     std::vector<std::shared_ptr<opset8::Result> > subgraph_results = {};
     for(auto& input_name : target_input) {
