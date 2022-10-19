@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
+#include <fstream>
 
 #include <ie_core.hpp>
 #include <openvino/opsets/opset8.hpp>
@@ -32,7 +33,16 @@ void run_model(std::shared_ptr<ov::Model> model) {
 int main(int args, char *argv[]) {
     if (args < 4)
         return -1;
-
+    std::string inputs(argv[2]);
+    std::string outputs(argv[3]);
+    bool hasInputConfig = false;
+    bool hasOutputConfig = false;
+    if (inputs.find(".config") != std::string::npos) {
+        hasInputConfig = true;
+    }
+    if (outputs.find(".config") != std::string::npos) {
+        hasOutputConfig = true;
+    }
     ov::Core core;
     auto model = core.read_model(argv[1]);
 
@@ -44,10 +54,25 @@ int main(int args, char *argv[]) {
     for(auto& op : ordered_ops) {
         name2op.emplace(op->get_friendly_name(), op);
     }
-    std::vector<std::string> target_input = {argv[2]};
-    std::vector<std::string> target_output = {argv[3]};
-    std::cout << "Start " << argv[2] << std::endl;
-    std::cout << "End " << argv[3] << std::endl;
+    auto readFile = [](std::string& name) {
+        std::cout << "Read Config " << name << std::endl;
+        std::fstream newfile;
+        std::vector<std::string> names;
+        newfile.open("name", std::ios::in); 
+        if (newfile.is_open()){   
+            std::string tp;
+            while(getline(newfile, tp)){ 
+                names.push_back(tp);
+            }
+            newfile.close(); //close the file object.
+        }
+        return names;
+    };
+
+    std::vector<std::string> target_input = hasInputConfig ? readFile(inputs) : std::vector<std::string>{inputs}; // "offset", "att_cache", "cnn_cache"};
+    std::vector<std::string> target_output = hasOutputConfig ? readFile(outputs) : std::vector<std::string>{outputs};
+    std::cout << "Start " << target_input[0] << std::endl;
+    std::cout << "End " << target_output[0] << std::endl;
     std::vector<std::shared_ptr<opset8::Parameter> > subgraph_parameters = {};
     std::vector<std::shared_ptr<opset8::Result> > subgraph_results = {};
     for(auto& input_name : target_input) {
