@@ -58,7 +58,7 @@ int main(int args, char *argv[]) {
         std::cout << "Read Config " << name << std::endl;
         std::fstream newfile;
         std::vector<std::string> names;
-        newfile.open("name", std::ios::in); 
+        newfile.open(name, std::ios::in); 
         if (newfile.is_open()){   
             std::string tp;
             while(getline(newfile, tp)){ 
@@ -83,24 +83,21 @@ int main(int args, char *argv[]) {
             continue;
         }
         size_t num_const = 0;
-        size_t index2non_const = -1;
+        std::vecotr<int> index2non_const = {};
         for(size_t i = 0; i < input_op->get_input_size(); i++) {
             auto parent = input_op->get_input_node_shared_ptr(i);
             if(ov::as_type_ptr<ov::opset8::Constant>(parent)) {
                 num_const++;
             } else {
-                if(index2non_const != -1) {
-                    throw std::runtime_error("Too many none const inputs");
-                } else {
-                    index2non_const = i;
-                }
+               index2non_const.push_back(i);
             }
         }
-
-        auto new_param = std::make_shared<opset8::Parameter>(input_op->get_input_element_type(index2non_const),
-                                                             input_op->get_input_partial_shape(index2non_const));
-        subgraph_parameters.push_back(new_param);
-        input_op->input_value(index2non_const).replace(new_param->output(index2non_const));
+        for(auto& index : index2non_const) {
+            auto new_param = std::make_shared<opset8::Parameter>(input_op->get_input_element_type(index),
+                input_op->get_input_partial_shape(index));
+                input_op->input_value(index).replace(new_param->output(index));
+                subgraph_parameters.push_back(new_param);
+        }       
     }
 
     for(auto& output_name : target_output) {
