@@ -83,7 +83,7 @@ int main(int args, char *argv[]) {
             continue;
         }
         size_t num_const = 0;
-        std::vecotr<int> index2non_const = {};
+        std::vector<int> index2non_const = {};
         for(size_t i = 0; i < input_op->get_input_size(); i++) {
             auto parent = input_op->get_input_node_shared_ptr(i);
             if(ov::as_type_ptr<ov::opset8::Constant>(parent)) {
@@ -95,13 +95,19 @@ int main(int args, char *argv[]) {
         for(auto& index : index2non_const) {
             auto new_param = std::make_shared<opset8::Parameter>(input_op->get_input_element_type(index),
                 input_op->get_input_partial_shape(index));
-                input_op->input_value(index).replace(new_param->output(index));
+                input_op->input_value(index).replace(new_param->output(0));
                 subgraph_parameters.push_back(new_param);
         }       
     }
 
     for(auto& output_name : target_output) {
         auto output_op = name2op.at(output_name);
+        if (auto node = ov::as_type_ptr<opset8::Result>(output_op)) {
+            std::cout << "keep original result " << output_name << std::endl;
+            subgraph_results.push_back(node);
+            continue;
+        }
+
         if (output_op->get_output_size() !=1) {
             throw std::runtime_error("input must has 1 child");
         }
