@@ -76,6 +76,7 @@ int main(int args, char *argv[]) {
     std::vector<std::shared_ptr<opset8::Parameter> > subgraph_parameters = {};
     std::vector<std::shared_ptr<opset8::Result> > subgraph_results = {};
     for(auto& input_name : target_input) {
+	std::cout << "process input " << input_name << std::endl;
         auto input_op = name2op.at(input_name);
         if (auto node = ov::as_type_ptr<opset8::Parameter>(input_op)) {
             std::cout << "keep original parameter " << input_name << std::endl;
@@ -95,12 +96,14 @@ int main(int args, char *argv[]) {
         for(auto& index : index2non_const) {
             auto new_param = std::make_shared<opset8::Parameter>(input_op->get_input_element_type(index),
                 input_op->get_input_partial_shape(index));
-                input_op->input_value(index).replace(new_param->output(0));
-                subgraph_parameters.push_back(new_param);
+            new_param->output(0).set_names({new_param->get_friendly_name()});
+            input_op->input(index).replace_source_output(new_param->output(0));
+            subgraph_parameters.push_back(new_param);
         }       
     }
 
     for(auto& output_name : target_output) {
+	    std::cout << "process output " << output_name << std::endl;
         auto output_op = name2op.at(output_name);
         if (auto node = ov::as_type_ptr<opset8::Result>(output_op)) {
             std::cout << "keep original result " << output_name << std::endl;
