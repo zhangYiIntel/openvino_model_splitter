@@ -12,6 +12,8 @@
 #include <openvino/pass/serialize.hpp>
 #include <openvino/core/preprocess/pre_post_process.hpp>
 #include "openvino/openvino.hpp"
+#include <openvino/op/util/variable.hpp>
+#include <openvino/op/sink.hpp>
 
 using namespace ov;
 
@@ -35,6 +37,9 @@ int main(int args, char *argv[]) {
         return -1;
     std::string inputs(argv[2]);
     std::string outputs(argv[3]);
+    std::string assigns = "";
+    if (args >= 5)
+        assigns = std::string(argv[4]);
     bool hasInputConfig = false;
     bool hasOutputConfig = false;
     if (inputs.find(".config") != std::string::npos) {
@@ -71,6 +76,7 @@ int main(int args, char *argv[]) {
 
     std::vector<std::string> target_input = hasInputConfig ? readFile(inputs) : std::vector<std::string>{inputs}; // "offset", "att_cache", "cnn_cache"};
     std::vector<std::string> target_output = hasOutputConfig ? readFile(outputs) : std::vector<std::string>{outputs};
+    std::vector<std::string> target_assign = !assigns.empty() ? readFile(assigns) : std::vector<std::string>();
     std::cout << "Start " << target_input[0] << std::endl;
     std::cout << "End " << target_output[0] << std::endl;
     std::vector<std::shared_ptr<opset8::Parameter> > subgraph_parameters = {};
@@ -119,8 +125,21 @@ int main(int args, char *argv[]) {
         ov::replace_node(output_op, new_result);
         subgraph_results.push_back(new_result);
     }
-
     auto subgraph = std::make_shared<ov::Model>(subgraph_results, subgraph_parameters);
+    SinkVector sinks;
+    // std::vector<std::string> target_thinks = {"Assign_196986", "Assign_196988"};
+    for (auto& assign_name : target_assign) {
+        std::cout << "process sink" << assign_name << std::endl;
+        auto sink_op = name2op.at(assign_name);
+        auto node = ov::as_type_ptr<opset8::Assign>(sink_op);
+        if (node) {
+            sinks.push_back(node);
+        }
+    }
+    if (!sinks.empty()){
+        std::cout << "Add sinks size " << sinks.size() << std::endl;
+        subgraph->add_sinks(sinks);
+    }
 
     ov::pass::Serialize serializer("simple_model.xml", "simple_model.bin");
     serializer.run_on_model(subgraph);

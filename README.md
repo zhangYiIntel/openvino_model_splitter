@@ -12,11 +12,15 @@ make
 # Usage
 
 ```bash
-ov_model_splitter <model path> <start end> <end node>
+ov_model_splitter <model path> <start end> <end node> [assign node]
 ```
-# Limitation
-Currently, this tool only supports single input/output from command line, but you can specify multiple inputs/outputs inside the source code at L47-L48
+# Notice
+`start/end/assign` could be specified by configuration files, e.g.
 ```
-    std::vector<std::string> target_input = {argv[2]};
-    std::vector<std::string> target_output = {argv[3]};
+input_1
+input_2
+```
+```
+output_1
+output_2
 ```
