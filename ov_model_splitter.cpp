@@ -6,8 +6,8 @@
 #include <unordered_map>
 #include <memory>
 #include <fstream>
+#include <chrono>
 
-#include <ie_core.hpp>
 #include <openvino/opsets/opset8.hpp>
 #include <openvino/pass/serialize.hpp>
 #include <openvino/core/preprocess/pre_post_process.hpp>
@@ -140,8 +140,9 @@ int main(int args, char *argv[]) {
         std::cout << "Add sinks size " << sinks.size() << std::endl;
         subgraph->add_sinks(sinks);
     }
-
-    ov::pass::Serialize serializer("simple_model.xml", "simple_model.bin");
-    serializer.run_on_model(subgraph);
+    using namespace std::chrono;
+    auto ms = duration_cast< milliseconds >(
+        system_clock::now().time_since_epoch()).count();
+    ov::serialize(subgraph, "simple_model_" + std::to_string(ms) + ".xml");
 
 }
